@@ -15,6 +15,7 @@
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "http-proxy": "^1.18.1",
+    "ping": "^0.4.4",
     "selfsigned": "^2.4.1",
     "sqlite3": "^5.1.7"
   },

@@ -15,13 +15,23 @@ function init() {
         err => {
           if (err) return reject(err);
           db.run(
-            `CREATE TABLE IF NOT EXISTS certs (
+            `CREATE TABLE IF NOT EXISTS ha_routes (
               domain TEXT PRIMARY KEY,
-              key TEXT NOT NULL,
-              cert TEXT NOT NULL,
-              issued_at DATETIME DEFAULT CURRENT_TIMESTAMP
+              primary_target TEXT NOT NULL,
+              backup_target TEXT NOT NULL
             )`,
-            err2 => (err2 ? reject(err2) : resolve())
+            err2 => {
+              if (err2) return reject(err2);
+              db.run(
+                `CREATE TABLE IF NOT EXISTS certs (
+                  domain TEXT PRIMARY KEY,
+                  key TEXT NOT NULL,
+                  cert TEXT NOT NULL,
+                  issued_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )`,
+                err3 => (err3 ? reject(err3) : resolve())
+              );
+            }
           );
         }
       );
@@ -51,6 +61,37 @@ function addRoute(domain, target) {
 function deleteRoute(domain) {
   return new Promise((resolve, reject) => {
     db.run('DELETE FROM routes WHERE domain = ?', [domain], function (err) {
+      if (err) reject(err);
+      else resolve(this.changes > 0);
+    });
+  });
+}
+
+function getHaRoutes() {
+  return new Promise((resolve, reject) => {
+    db.all(
+      "SELECT domain, primary_target as 'primary', backup_target as 'backup' FROM ha_routes",
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      }
+    );
+  });
+}
+
+function addHaRoute(domain, primary, backup) {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'INSERT OR REPLACE INTO ha_routes(domain, primary_target, backup_target) VALUES(?, ?, ?)',
+      [domain, primary, backup],
+      err => (err ? reject(err) : resolve())
+    );
+  });
+}
+
+function deleteHaRoute(domain) {
+  return new Promise((resolve, reject) => {
+    db.run('DELETE FROM ha_routes WHERE domain = ?', [domain], function (err) {
       if (err) reject(err);
       else resolve(this.changes > 0);
     });
@@ -103,6 +144,9 @@ module.exports = {
   getRoutes,
   addRoute,
   deleteRoute,
+  getHaRoutes,
+  addHaRoute,
+  deleteHaRoute,
   getCerts,
   addCert,
   getCert,
