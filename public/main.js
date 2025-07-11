@@ -34,3 +34,30 @@ document.querySelector('#routes-table tbody').addEventListener('click', async e 
 });
 
 loadRoutes();
+
+async function loadCerts() {
+  const res = await fetch('/api/certs');
+  const certs = await res.json();
+  const tbody = document.querySelector('#certs-table tbody');
+  tbody.innerHTML = '';
+  certs.forEach(c => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${c.domain}</td><td>${c.issued_at}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('add-cert-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const domain = document.getElementById('cert-domain').value.trim();
+  if (!domain) return;
+  await fetch('/api/certs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ domain })
+  });
+  e.target.reset();
+  loadCerts();
+});
+
+loadCerts();

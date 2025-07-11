@@ -3,6 +3,7 @@ const express = require('express');
 const httpProxy = require('http-proxy');
 const path = require('path');
 const db = require('./db');
+const certs = require('./certs');
 
 const app = express();
 const proxy = httpProxy.createProxyServer({});
@@ -24,6 +25,29 @@ app.get('/api/routes', async (req, res, next) => {
   try {
     const routes = await loadRoutes();
     res.json(routes);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// API endpoints for managing certificates
+app.get('/api/certs', async (req, res, next) => {
+  try {
+    const list = await db.getCerts();
+    res.json(list);
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/certs', async (req, res, next) => {
+  const { domain } = req.body;
+  if (!domain) {
+    return res.status(400).json({ error: 'Missing domain' });
+  }
+  try {
+    await certs.issueSelfSigned(domain);
+    res.status(201).json({ status: 'issued' });
   } catch (err) {
     next(err);
   }
