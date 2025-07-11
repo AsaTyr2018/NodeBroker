@@ -1,8 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const httpProxy = require('http-proxy');
-const sqlite3 = require('sqlite3');
 const path = require('path');
+const db = require('./db');
 
 const app = express();
 const proxy = httpProxy.createProxyServer({});
@@ -10,55 +10,69 @@ const proxy = httpProxy.createProxyServer({});
 app.use(express.json());
 app.use('/ui', express.static(path.join(__dirname, '../public')));
 
-// Simple in-memory routing table
-const routes = [
-  // Example route: { domain: 'example.com', target: 'http://localhost:3000' }
-];
+db.init().catch(err => {
+  console.error('Failed to initialize database', err);
+  process.exit(1);
+});
 
-function loadRoutes() {
-  // Placeholder for loading from SQLite in future
-  return routes;
+async function loadRoutes() {
+  return db.getRoutes();
 }
 
 // API endpoints for managing routes
-app.get('/api/routes', (req, res) => {
-  res.json(loadRoutes());
+app.get('/api/routes', async (req, res, next) => {
+  try {
+    const routes = await loadRoutes();
+    res.json(routes);
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.post('/api/routes', (req, res) => {
+app.post('/api/routes', async (req, res, next) => {
   const { domain, target } = req.body;
   if (!domain || !target) {
     return res.status(400).json({ error: 'Missing domain or target' });
   }
-  // TODO: persist routes to SQLite
-  routes.push({ domain, target });
-  res.status(201).json({ status: 'created' });
+  try {
+    await db.addRoute(domain, target);
+    res.status(201).json({ status: 'created' });
+  } catch (err) {
+    next(err);
+  }
 });
 
-app.delete('/api/routes/:domain', (req, res) => {
-  const idx = routes.findIndex(r => r.domain === req.params.domain);
-  if (idx === -1) {
-    return res.status(404).json({ error: 'Not found' });
+app.delete('/api/routes/:domain', async (req, res, next) => {
+  try {
+    const deleted = await db.deleteRoute(req.params.domain);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.json({ status: 'deleted' });
+  } catch (err) {
+    next(err);
   }
-  // TODO: persist deletion to SQLite
-  routes.splice(idx, 1);
-  res.json({ status: 'deleted' });
 });
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   const host = req.headers.host;
-  const route = loadRoutes().find(r => r.domain === host);
-  if (route) {
-    proxy.web(req, res, { target: route.target }, err => {
-      console.error('Proxy error:', err);
-      res.status(502).send('Bad gateway');
-    });
-  } else {
-    res.status(404).send('No route');
+  try {
+    const routes = await loadRoutes();
+    const route = routes.find(r => r.domain === host);
+    if (route) {
+      proxy.web(req, res, { target: route.target }, err => {
+        console.error('Proxy error:', err);
+        res.status(502).send('Bad gateway');
+      });
+    } else {
+      res.status(404).send('No route');
+    }
+  } catch (err) {
+    next(err);
   }
 });
 

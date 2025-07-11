@@ -7,7 +7,7 @@ NodeBroker is a lightweight reverse proxy with a simple web interface. It routes
 - Express-based server
 - HTTP proxy using `http-proxy`
 - Health check endpoint at `/health`
-- Configuration placeholder for SQLite-backed routing (work in progress)
+- Routes persisted in a SQLite database
 
 ## Development
 
