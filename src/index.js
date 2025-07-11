@@ -7,6 +7,9 @@ const path = require('path');
 const app = express();
 const proxy = httpProxy.createProxyServer({});
 
+app.use(express.json());
+app.use('/ui', express.static(path.join(__dirname, '../public')));
+
 // Simple in-memory routing table
 const routes = [
   // Example route: { domain: 'example.com', target: 'http://localhost:3000' }
@@ -16,6 +19,31 @@ function loadRoutes() {
   // Placeholder for loading from SQLite in future
   return routes;
 }
+
+// API endpoints for managing routes
+app.get('/api/routes', (req, res) => {
+  res.json(loadRoutes());
+});
+
+app.post('/api/routes', (req, res) => {
+  const { domain, target } = req.body;
+  if (!domain || !target) {
+    return res.status(400).json({ error: 'Missing domain or target' });
+  }
+  // TODO: persist routes to SQLite
+  routes.push({ domain, target });
+  res.status(201).json({ status: 'created' });
+});
+
+app.delete('/api/routes/:domain', (req, res) => {
+  const idx = routes.findIndex(r => r.domain === req.params.domain);
+  if (idx === -1) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  // TODO: persist deletion to SQLite
+  routes.splice(idx, 1);
+  res.json({ status: 'deleted' });
+});
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
