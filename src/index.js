@@ -11,6 +11,13 @@ const proxy = httpProxy.createProxyServer({});
 
 app.use(express.json());
 app.use('/ui', express.static(path.join(__dirname, '../public')));
+app.use(
+  '/.well-known/acme-challenge',
+  express.static(
+    process.env.ACME_CHALLENGE_DIR ||
+      path.join(__dirname, '../acme-challenges')
+  )
+);
 
 const initPromise = db.init().catch(err => {
   console.error('Failed to initialize database', err);
@@ -54,6 +61,19 @@ app.post('/api/certs', async (req, res, next) => {
   }
   try {
     await certs.issueSelfSigned(domain);
+    res.status(201).json({ status: 'issued' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/api/letsencrypt', async (req, res, next) => {
+  const { domain, email } = req.body;
+  if (!domain || !email) {
+    return res.status(400).json({ error: 'Missing domain or email' });
+  }
+  try {
+    await certs.issueLetsEncrypt(domain, email);
     res.status(201).json({ status: 'issued' });
   } catch (err) {
     next(err);
