@@ -30,10 +30,33 @@
       </thead>
       <tbody></tbody>
     </table>
-    <h3>Issue Certificate</h3>
+    <h3>Issue Self-Signed Certificate</h3>
     <form id="add-cert-form">
       <input type="text" id="cert-domain" placeholder="Domain" required>
       <button type="submit">Issue</button>
+    </form>
+    <h3>Issue Let's Encrypt Certificate</h3>
+    <form id="add-le-form">
+      <input type="text" id="le-domain" placeholder="Domain" required>
+      <input type="email" id="le-email" placeholder="Email" required>
+      <button type="submit">Issue</button>
+    </form>
+  </section>
+
+  <section id="ha-routes-section">
+    <h2>HA Routes</h2>
+    <table id="ha-routes-table">
+      <thead>
+        <tr><th>Domain</th><th>Primary</th><th>Backup</th><th>Actions</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <h3>Add HA Route</h3>
+    <form id="add-ha-form">
+      <input type="text" id="ha-domain" placeholder="Domain" required>
+      <input type="text" id="ha-primary" placeholder="Primary URL" required>
+      <input type="text" id="ha-backup" placeholder="Backup URL" required>
+      <button type="submit">Add</button>
     </form>
   </section>
   <script src="main.js"></script>

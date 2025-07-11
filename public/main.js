@@ -61,3 +61,55 @@ document.getElementById('add-cert-form').addEventListener('submit', async e => {
 });
 
 loadCerts();
+
+async function loadHaRoutes() {
+  const res = await fetch('/api/ha/routes');
+  const routes = await res.json();
+  const tbody = document.querySelector('#ha-routes-table tbody');
+  tbody.innerHTML = '';
+  routes.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.domain}</td><td>${r.primary}</td><td>${r.backup}</td>` +
+      `<td><button data-domain="${r.domain}" class="delete-ha-btn">Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('add-ha-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const domain = document.getElementById('ha-domain').value.trim();
+  const primary = document.getElementById('ha-primary').value.trim();
+  const backup = document.getElementById('ha-backup').value.trim();
+  if (!domain || !primary || !backup) return;
+  await fetch('/api/ha/routes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ domain, primary, backup })
+  });
+  e.target.reset();
+  loadHaRoutes();
+});
+
+document.querySelector('#ha-routes-table tbody').addEventListener('click', async e => {
+  if (e.target.classList.contains('delete-ha-btn')) {
+    const domain = e.target.dataset.domain;
+    await fetch('/api/ha/routes/' + encodeURIComponent(domain), { method: 'DELETE' });
+    loadHaRoutes();
+  }
+});
+
+loadHaRoutes();
+
+document.getElementById('add-le-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const domain = document.getElementById('le-domain').value.trim();
+  const email = document.getElementById('le-email').value.trim();
+  if (!domain || !email) return;
+  await fetch('/api/letsencrypt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ domain, email })
+  });
+  e.target.reset();
+  loadCerts();
+});
